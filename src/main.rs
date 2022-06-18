@@ -1,5 +1,6 @@
 // Dependencies
 
+mod structs;
 mod controls;
 mod render;
 

@@ -1,9 +1,11 @@
 mod lib;
-mod structs;
 mod camera;
 mod teapot;
 
 // Dependencies
+
+use camera::CameraView;
+use crate::controls::ControlState;
 
 use glium::{
 	glutin,
@@ -21,8 +23,7 @@ use glium::glutin::{
 	event::{VirtualKeyCode, ElementState}
 };
 
-use camera::CameraView;
-use crate::controls::ControlState;
+use std::time::Instant;
 
 // Vertex
 
@@ -39,7 +40,8 @@ pub struct Renderer {
 	control: ControlState,
 	event_loop: EventLoop<()>,
 	display: Display,
-	program: Program
+	program: Program,
+	_last_frame: Instant
 }
 
 impl Renderer {
@@ -62,11 +64,13 @@ impl Renderer {
 			out vec3 v_normal;
 
 			uniform mat4 perspective;
+			uniform mat4 view;
 			uniform mat4 matrix;
 
 			void main() {
-				v_normal = transpose(inverse(mat3(matrix))) * normal;
-				gl_Position = perspective * matrix * vec4(position, 1.0);
+				mat4 modelview = view * matrix;
+				v_normal = transpose(inverse(mat3(modelview))) * normal;
+				gl_Position = perspective * modelview * vec4(position, 1.0);
 			}
 		"#;
 
@@ -81,7 +85,7 @@ impl Renderer {
 
 			void main() {
 				float brightness = dot(normalize(v_normal), normalize(u_light));
-				vec3 dark_color = vec3(0.6, 0.6, 0.6);
+				vec3 dark_color = vec3(0.505, 0.5, 0.5);
 				vec3 regular_color = vec3(1.0, 1.0, 1.0);
 				color = vec4(mix(dark_color, regular_color, brightness), 1.0);
 			}
@@ -98,13 +102,20 @@ impl Renderer {
 			control: ControlState::new(),
 			event_loop: event_loop,
 			display: display,
-			program: program
+			program: program,
+			_last_frame: Instant::now()
 		}
 	}
 
 	pub fn draw(mut self) {
 		self.event_loop.run(move |event, _, control_flow| {
-			let next_frame_time = std::time::Instant::now() +
+			// Frame Time
+
+			let now = Instant::now();
+			let delta = (now - self._last_frame).as_nanos() as f32 / 1_000_000.0;;
+			self._last_frame = now;
+
+			let next_frame_time = now +
 				std::time::Duration::from_nanos(16_666_667);
 			*control_flow = ControlFlow::WaitUntil(next_frame_time);
 
@@ -130,6 +141,10 @@ impl Renderer {
 				},
 				_ => ()
 			}
+
+			// Camera control
+
+			self.camera.control(&self.control, &delta);
 
 			// Start draw frame
 	
