@@ -18,9 +18,9 @@ pub struct CameraView {
 impl CameraView {
 	pub fn new() -> Self {
 		Self {
-			pos: Vec3 {x:1.0, y:0.0, z:-0.5},
-			rotate: Vec3 {x:0.0, y:0.0, z:1.0},
-			yaw: Vec3 {x:0.0, y:2.0, z:0.0},
+			pos: Vec3::new(1.0, 0.0, -0.5),
+			rotate: Vec3::new(0.0, 0.0, 1.0),
+			yaw: Vec3::new(0.0, 2.0, 0.0)
 		}
 	}
 
@@ -57,7 +57,6 @@ impl CameraView {
 			vel.y -= move_vel;
 		}
 
-		//println!("{:?} {:?}", self.pos, vel);
 		self.pos += vel;
 	}
 }

@@ -111,40 +111,9 @@ impl Renderer {
 		self.event_loop.run(move |event, _, control_flow| {
 			// Frame Time
 
-			let now = Instant::now();
-			let delta = (now - self._last_frame).as_nanos() as f32 / 1_000_000.0;;
-			self._last_frame = now;
-
-			let next_frame_time = now +
-				std::time::Duration::from_nanos(16_666_667);
-			*control_flow = ControlFlow::WaitUntil(next_frame_time);
-
-			// Event Handler
-
-			match event {
-				// Close Event
-				event::Event::WindowEvent { event, .. } => match event {
-					event::WindowEvent::CloseRequested => {
-						*control_flow = ControlFlow::Exit;
-						return;
-					},
-					_ => ()
-				},
-				// Input Event
-				event::Event::DeviceEvent { event, .. } => match event {
-					// Keyboard Event
-					event::DeviceEvent::Key(input) => match input.state {
-						ElementState::Pressed => { self.control.press(input.virtual_keycode.unwrap()) },
-						ElementState::Released => { self.control.release(input.virtual_keycode.unwrap()) }
-					},
-					_ => ()
-				},
-				_ => ()
-			}
-
-			// Camera control
-
-			self.camera.control(&self.control, &delta);
+			let start = Instant::now();
+			let delta = (start - self._last_frame).as_nanos() as f32 / 1_000_000.0;
+			self._last_frame = start;
 
 			// Start draw frame
 	
@@ -180,6 +149,40 @@ impl Renderer {
 			frame.draw((&positions, &normals), &indices, &self.program, &uniforms, &params).unwrap();
 	
 			frame.finish().unwrap();
+
+			// Event Handler
+
+			match event {
+				// Close Event
+				event::Event::WindowEvent { event, .. } => match event {
+					event::WindowEvent::CloseRequested => {
+						*control_flow = ControlFlow::Exit;
+						return;
+					},
+					_ => ()
+				},
+				// Input Event
+				event::Event::DeviceEvent { event, .. } => match event {
+					// Keyboard Event
+					event::DeviceEvent::Key(input) => match input.state {
+						ElementState::Pressed => { self.control.press(input.virtual_keycode.unwrap()) },
+						ElementState::Released => { self.control.release(input.virtual_keycode.unwrap()) }
+					},
+					_ => ()
+				},
+				_ => ()
+			}
+
+			// Camera control
+
+			self.camera.control(&self.control, &delta);
+
+			// Next frame time
+
+			let end = Instant::now();
+			let next_frame_time = end +
+				std::time::Duration::from_nanos(16_666_667);
+			*control_flow = ControlFlow::WaitUntil(next_frame_time);
 		});
 	}
 
