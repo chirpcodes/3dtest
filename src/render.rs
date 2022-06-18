@@ -107,12 +107,12 @@ impl Renderer {
 		}
 	}
 
-	pub fn draw(mut self) {
+	pub fn run(mut self) {
 		self.event_loop.run(move |event, _, control_flow| {
 			// Frame Time
 
 			let start = Instant::now();
-			let delta = (start - self._last_frame).as_nanos() as f32 / 1_000_000.0;
+			let delta_time = (start - self._last_frame).as_nanos() as f32 / 1_000_000.0;
 			self._last_frame = start;
 
 			// Start draw frame
@@ -165,8 +165,17 @@ impl Renderer {
 				event::Event::DeviceEvent { event, .. } => match event {
 					// Keyboard Event
 					event::DeviceEvent::Key(input) => match input.state {
-						ElementState::Pressed => { self.control.press(input.virtual_keycode.unwrap()) },
-						ElementState::Released => { self.control.release(input.virtual_keycode.unwrap()) }
+						ElementState::Pressed => self.control.key_press(input.virtual_keycode.unwrap()),
+						ElementState::Released => self.control.key_release(input.virtual_keycode.unwrap())
+					},
+					// Button Click
+					event::DeviceEvent::Button { button, state, .. } => match state {
+						ElementState::Pressed => self.control.mouse_click(button),
+						ElementState::Released => self.control.mouse_release(button)
+					},
+					// Button Move
+					event::DeviceEvent::MouseMotion { delta, .. } => if self.control.is_mouse_clicked(3) {
+						self.camera.rotate(delta.0, delta.1, &delta_time)
 					},
 					_ => ()
 				},
@@ -175,7 +184,7 @@ impl Renderer {
 
 			// Camera control
 
-			self.camera.control(&self.control, &delta);
+			self.camera.control(&self.control, &delta_time);
 
 			// Next frame time
 

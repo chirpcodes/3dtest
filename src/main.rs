@@ -7,5 +7,5 @@ mod render;
 // Main
 
 pub fn main() {
-	render::Renderer::new().draw();
+	render::Renderer::new().run();
 }
