@@ -1,11 +1,13 @@
 // Dependencies
 
 mod structs;
+mod models;
 mod controls;
 mod render;
 
 // Main
 
 pub fn main() {
-	render::Renderer::new().run();
+	let renderer = render::Renderer::new();
+	renderer.run();
 }

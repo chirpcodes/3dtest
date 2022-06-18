@@ -18,7 +18,7 @@ pub struct CameraView {
 impl CameraView {
 	pub fn new() -> Self {
 		Self {
-			pos: Vec3::new(1.0, 0.0, -0.5),
+			pos: Vec3::new(0.0, 0.0, -0.5),
 			rotate: Vec3::new(0.0, 0.0, 1.0),
 			up: Vec3::new(0.0, 2.0, 0.0)
 		}
@@ -52,7 +52,6 @@ impl CameraView {
 
 		let xrot = self.rotate.x.to_radians();
 		let yrot = self.rotate.y.to_radians();
-		println!("{}", self.rotate.y);
 
 		if state.is_key_pressed(W) { // Forward
 			vel.x += move_vel * xrot.sin();
@@ -89,8 +88,6 @@ impl CameraView {
 		self.rotate.x = Self::wrap_deg(self.rotate.x + (x as f32) * rot_delta);
 		self.rotate.y = Self::wrap_deg(self.rotate.y - (y as f32) * rot_delta);
 		self.rotate.z = self.rotate.x;
-
-		//println!("{} = {}", self.rotate.x, self.rotate.x.sin());
 	}
 
 	pub fn wrap_deg(mut deg: f32) -> f32 {

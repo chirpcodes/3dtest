@@ -1,11 +1,10 @@
-mod lib;
-mod camera;
-mod teapot;
-
 // Dependencies
 
-use camera::CameraView;
+use super::camera::CameraView;
 use crate::controls::ControlState;
+use crate::structs::Vertex;
+
+use super::teapot;
 
 use glium::{
 	glutin,
@@ -24,14 +23,6 @@ use glium::glutin::{
 };
 
 use std::time::Instant;
-
-// Vertex
-
-#[derive(Copy, Clone)]
-struct Vertex {
-	position: [f32; 2],
-}
-implement_vertex!(Vertex, position);
 
 // Renderer
 
@@ -119,7 +110,7 @@ impl Renderer {
 	
 			let mut frame = self.display.draw();
 			frame.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 1.0);
-	
+
 			let positions = VertexBuffer::new(&self.display, &teapot::VERTICES).unwrap();
 			let normals = VertexBuffer::new(&self.display, &teapot::NORMALS).unwrap();
 			let indices = IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &teapot::INDICES).unwrap();
@@ -132,7 +123,7 @@ impl Renderer {
 					[0.01, 0.0, 0.0, 0.0],
 					[0.0, 0.01, 0.0, 0.0],
 					[0.0, 0.0, 0.01, 0.0],
-					[0.0, 0.0, 2.0, 1.0f32]
+					[0.0, 0.0, 0.0, 1.0f32]
 				]
 			};
 	
@@ -142,7 +133,7 @@ impl Renderer {
 					write: true,
 					.. Default::default()
 				},
-				// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
+				//backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
 				.. Default::default()
 			};
 	
