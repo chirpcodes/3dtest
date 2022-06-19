@@ -4,6 +4,7 @@ use crate::structs::{Vertex, Normal, Vec3};
 
 // Model
 
+#[derive(Debug)]
 pub struct Model {
 	pub position: Vec3,
 

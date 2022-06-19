@@ -11,7 +11,7 @@ use crate::structs::{Vertex, Normal};
 pub struct ObjModel {}
 
 impl ObjModel {
-	pub fn parse<T: Read>(file: &mut T) {
+	pub fn parse<T: Read>(file: &mut T) -> Model {
 		let mut model = Model::new();
 
 		let mut cmd = "".to_owned();
@@ -56,20 +56,24 @@ impl ObjModel {
 								);
 							},
 							"vn" => {
+								let normal = Normal { normal: (
+									args[0].parse().unwrap(),
+									args[1].parse().unwrap(),
+									args[2].parse().unwrap()
+								) };
+
 								model.normals.push(
-									Normal { normal: (
-										args[0].parse().unwrap(),
-										args[1].parse().unwrap(),
-										args[2].parse().unwrap()
-									) }
+									normal
 								);
 							},
 							"f" => {
 								for i in &args {
+									print!("{i} ");
 									model.indices.push(
 										i.parse().unwrap()
 									);
 								}
+								print!("\n");
 							},
 							"s" => {
 								model.scale = args[0].parse().unwrap();
@@ -101,8 +105,25 @@ impl ObjModel {
 					token.push(ch);
 				}
 			}
-
-			//println!("{:?}", buf[0] as char == '\n');
 		}
+
+		if model.normals.len() == 0 {
+			for v in &model.vertices {
+				model.normals.push(
+					Normal { normal: (
+						v.position.0.sin(),
+						v.position.1.sin(),
+						v.position.2.cos()
+					) }
+				);
+			}
+			/*for i in 0..model.vertices.len() {
+				model.normals.push(Normal {
+					normal: (1.0, 1.0, 1.0)
+				});
+			}*/
+		}
+
+		model
 	}
 }

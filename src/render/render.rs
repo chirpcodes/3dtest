@@ -2,6 +2,7 @@
 
 use super::camera::CameraView;
 use crate::controls::ControlState;
+use crate::models::Model;
 use crate::structs::Vertex;
 
 use super::teapot;
@@ -32,6 +33,7 @@ pub struct Renderer {
 	event_loop: EventLoop<()>,
 	display: Display,
 	program: Program,
+	models: Vec<Model>,
 	_last_frame: Instant
 }
 
@@ -94,6 +96,7 @@ impl Renderer {
 			event_loop: event_loop,
 			display: display,
 			program: program,
+			models: vec![],
 			_last_frame: Instant::now()
 		}
 	}
@@ -111,11 +114,47 @@ impl Renderer {
 			let mut frame = self.display.draw();
 			frame.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 1.0);
 
-			let positions = VertexBuffer::new(&self.display, &teapot::VERTICES).unwrap();
+			/*let positions = VertexBuffer::new(&self.display, &teapot::VERTICES).unwrap();
 			let normals = VertexBuffer::new(&self.display, &teapot::NORMALS).unwrap();
-			let indices = IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &teapot::INDICES).unwrap();
+			let indices = IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &teapot::INDICES).unwrap();*/
+
+			let u_light = [-2.0, 2.0, 1.0f32];
+			let perspective = Self::get_perspective(&frame);
+			let view = self.camera.get_view();
+
+			let params = glium::DrawParameters {
+				depth: glium::Depth {
+					test: glium::draw_parameters::DepthTest::IfLess,
+					write: true,
+					.. Default::default()
+				},
+				//backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
+				.. Default::default()
+			};
+
+			for model in &self.models {
+				let uniforms = uniform!{
+					u_light: u_light,
+					perspective: perspective,
+					view: view,
+					matrix: [
+						[1.0, 0.0, 0.0, 0.0],
+						[0.0, 1.0, 0.0, 0.0],
+						[0.0, 0.0, 1.0, 0.0],
+						[model.position.x, model.position.y, model.position.z, model.scale]
+					]
+				};
+
+				let vertices = VertexBuffer::new(&self.display, &model.vertices).unwrap();
+				let normals = VertexBuffer::new(&self.display, &model.normals).unwrap();
+				let indices = IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &model.indices).unwrap();
+
+				frame.draw((&vertices, &normals), &indices, &self.program, &uniforms, &params).unwrap();
+			}
+
+			frame.finish().unwrap();
 	
-			let uniforms = uniform! {
+			/*let uniforms = uniform! {
 				u_light: [-2.0, 2.0, 1.0f32],
 				perspective: Self::get_perspective(&frame),
 				view: self.camera.get_view(),
@@ -139,7 +178,7 @@ impl Renderer {
 	
 			frame.draw((&positions, &normals), &indices, &self.program, &uniforms, &params).unwrap();
 	
-			frame.finish().unwrap();
+			frame.finish().unwrap();*/
 
 			// Event Handler
 
@@ -202,5 +241,9 @@ impl Renderer {
 			[0.0, 0.0, (zfar+znear)/(zfar-znear), 1.0],
 			[0.0, 0.0, -(2.0*zfar*znear)/(zfar-znear), 0.0]
 		]
+	}
+
+	pub fn add_model(&mut self, model: Model) {
+		self.models.push(model);
 	}
 }

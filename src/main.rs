@@ -12,9 +12,10 @@ use std::fs::File;
 // Main
 
 pub fn main() {
-	let mut file = File::open("./data/teapot.obj").unwrap();
+	let mut file = File::open("./data/teapot1.obj").unwrap();
 	let model = models::ObjModel::parse(&mut file);
 
-	let renderer = render::Renderer::new();
+	let mut renderer = render::Renderer::new();
+	renderer.add_model(model);
 	renderer.run();
 }
