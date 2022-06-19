@@ -3,13 +3,13 @@ use std::ops::{Add, AddAssign};
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
-    position: (f32, f32, f32)
+    pub position: (f32, f32, f32)
 }
 implement_vertex!(Vertex, position);
 
 #[derive(Copy, Clone)]
 pub struct Normal {
-    normal: (f32, f32, f32)
+    pub normal: (f32, f32, f32)
 }
 implement_vertex!(Normal, normal);
 
