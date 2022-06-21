@@ -15,7 +15,10 @@ impl ObjModel {
 		let mut model = Model::new();
 		
 		model.vertices.push(
-			Vertex { position: (0.0, 0.0, 0.0) }
+			Vertex {
+				position: (0.0, 0.0, 0.0),
+				tex_coords: (0.0, 0.0)
+			}
 		);
 		model.normals.push(
 			Normal { normal: (0.0, 0.0, 0.0) }
@@ -26,6 +29,7 @@ impl ObjModel {
 		let mut args: Vec<String> = vec![];
 		let mut comment = false;
 		let mut ignore = false;
+		let mut vt_ix = 1;
 
 		let mut buf = [0u8];
 		while let Ok(ct) = file.read(&mut buf) {
@@ -53,11 +57,14 @@ impl ObjModel {
 						match cmd.as_str() {
 							"v" => {
 								model.vertices.push(
-									Vertex { position: (
-										args[0].parse().unwrap(),
-										args[1].parse().unwrap(),
-										args[2].parse().unwrap()
-									) }
+									Vertex {
+										position: (
+											args[0].parse().unwrap(),
+											args[1].parse().unwrap(),
+											args[2].parse().unwrap()
+										),
+										tex_coords: (0.0, 0.0)
+									}
 								);
 							},
 							"vn" => {
@@ -70,6 +77,13 @@ impl ObjModel {
 								model.normals.push(
 									normal
 								);
+							},
+							"vt" => {
+								model.vertices[vt_ix].tex_coords = (
+									args[0].parse().unwrap(),
+									args[1].parse().unwrap()
+								);
+								vt_ix += 1;
 							},
 							"f" => {
 								for i in &args {

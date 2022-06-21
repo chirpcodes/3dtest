@@ -10,7 +10,8 @@ use glium::{
 	implement_vertex, uniform,
 	Frame, Program, Display, Surface,
 	VertexBuffer, IndexBuffer,
-	index::PrimitiveType
+	index::PrimitiveType,
+	texture::SrgbTexture2d
 };
 
 use glium::glutin::{
@@ -30,9 +31,11 @@ const VERTEX_SHADER_SRC: &'static str = r#"
 
 	in vec3 normal;
 	in vec3 position;
+	in vec2 tex_coords;
 
 	out vec3 v_normal;
 	out vec3 v_position;
+	out vec2 v_tex_coords;
 
 	uniform mat4 perspective;
 	uniform mat4 view;
@@ -40,9 +43,13 @@ const VERTEX_SHADER_SRC: &'static str = r#"
 
 	void main() {
 		mat4 modelview = view * matrix;
+		
 		v_normal = transpose(inverse(mat3(modelview))) * normal;
+
 		gl_Position = perspective * modelview * vec4(position, 1.0);
 		v_position = gl_Position.xyz / gl_Position.w;
+
+		v_tex_coords = tex_coords;
 	}
 "#;
 
@@ -51,10 +58,12 @@ const FRAGMENT_SHADER_SRC: &'static str = r#"
 
 	in vec3 v_normal;
 	in vec3 v_position;
+	in vec2 v_tex_coords;
 
 	out vec4 color;
 
 	uniform vec3 u_light;
+	uniform sampler2D tex;
 
 	const vec3 ambient_color = vec3(0.1, 0.1, 0.1);
 	const vec3 diffuse_color = vec3(0.55, 0.5, 0.5);
@@ -71,7 +80,9 @@ const FRAGMENT_SHADER_SRC: &'static str = r#"
 		vec3 colorLin = vec3(ambient_color + diffuse * diffuse_color + specular * specular_color);
 		vec3 colorGamma = pow(colorLin, vec3(1.0 / gamma));
 
-		color = vec4(colorGamma, 1.0);
+		//color = vec4(colorGamma, 1.0);
+		
+		color = texture(tex, v_tex_coords);
 	}
 "#;
 
@@ -160,7 +171,8 @@ impl Renderer {
 						[0.0, 1.0, 0.0, 0.0],
 						[0.0, 0.0, 1.0, 0.0],
 						[model.position.x, model.position.y, model.position.z, model.scale]
-					]
+					],
+					tex: model.texture.as_ref().unwrap()
 				};
 
 				let vertices = model.vert_buf.as_ref().unwrap();
@@ -228,6 +240,12 @@ impl Renderer {
 	}
 
 	pub fn add_model(&mut self, mut model: Model) {
+		if let Some(ref path) = model.tex_path {
+			model.load_tex(&self.display);
+		} else {
+			model.texture = Some(SrgbTexture2d::empty(&self.display, 0, 0).unwrap());
+		}
+
 		model.vert_buf = Some(VertexBuffer::new(&self.display, &model.vertices).unwrap());
 		model.norm_buf = Some(VertexBuffer::new(&self.display, &model.normals).unwrap());
 		model.ix_buf = Some(IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &model.indices).unwrap());

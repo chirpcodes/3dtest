@@ -5,3 +5,4 @@ version = "0.1.0"
 
 [dependencies]
 glium = "0.31.0"
+image = "*"
