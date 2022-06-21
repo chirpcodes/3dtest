@@ -13,6 +13,13 @@ pub struct ObjModel {}
 impl ObjModel {
 	pub fn parse<T: Read>(file: &mut T) -> Model {
 		let mut model = Model::new();
+		
+		model.vertices.push(
+			Vertex { position: (0.0, 0.0, 0.0) }
+		);
+		model.normals.push(
+			Normal { normal: (0.0, 0.0, 0.0) }
+		);
 
 		let mut cmd = "".to_owned();
 		let mut token = "".to_owned();
@@ -38,8 +45,6 @@ impl ObjModel {
 				}
 			}
 
-			let mut process = false;
-			let mut eol = false;
 			match ch {
 				'\n' => {
 					if cmd != "" {
@@ -68,12 +73,10 @@ impl ObjModel {
 							},
 							"f" => {
 								for i in &args {
-									print!("{i} ");
 									model.indices.push(
 										i.parse().unwrap()
 									);
 								}
-								print!("\n");
 							},
 							"s" => {
 								model.scale = args[0].parse().unwrap();
@@ -101,6 +104,9 @@ impl ObjModel {
 				'/' => {
 					ignore = true;
 				},
+				'\r' => {
+					continue;
+				},
 				_ => {
 					token.push(ch);
 				}
@@ -111,17 +117,12 @@ impl ObjModel {
 			for v in &model.vertices {
 				model.normals.push(
 					Normal { normal: (
-						v.position.0.sin(),
+						v.position.0.cos(),
 						v.position.1.sin(),
-						v.position.2.cos()
+						v.position.2.sin()
 					) }
 				);
 			}
-			/*for i in 0..model.vertices.len() {
-				model.normals.push(Normal {
-					normal: (1.0, 1.0, 1.0)
-				});
-			}*/
 		}
 
 		model

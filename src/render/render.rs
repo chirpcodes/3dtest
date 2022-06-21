@@ -1,11 +1,9 @@
 // Dependencies
 
 use super::camera::CameraView;
-use crate::controls::ControlState;
 use crate::models::Model;
-use crate::structs::Vertex;
-
-use super::teapot;
+use crate::controls::ControlState;
+use crate::structs::{Vertex, Normal};
 
 use glium::{
 	glutin,
@@ -23,7 +21,59 @@ use glium::glutin::{
 	event::{VirtualKeyCode, ElementState}
 };
 
-use std::time::Instant;
+use std::time::{Instant, Duration};
+
+// Shaders
+
+const VERTEX_SHADER_SRC: &'static str = r#"
+	#version 150
+
+	in vec3 normal;
+	in vec3 position;
+
+	out vec3 v_normal;
+	out vec3 v_position;
+
+	uniform mat4 perspective;
+	uniform mat4 view;
+	uniform mat4 matrix;
+
+	void main() {
+		mat4 modelview = view * matrix;
+		v_normal = transpose(inverse(mat3(modelview))) * normal;
+		gl_Position = perspective * modelview * vec4(position, 1.0);
+		v_position = gl_Position.xyz / gl_Position.w;
+	}
+"#;
+
+const FRAGMENT_SHADER_SRC: &'static str = r#"
+	#version 150
+
+	in vec3 v_normal;
+	in vec3 v_position;
+
+	out vec4 color;
+
+	uniform vec3 u_light;
+
+	const vec3 ambient_color = vec3(0.1, 0.1, 0.1);
+	const vec3 diffuse_color = vec3(0.55, 0.5, 0.5);
+	const vec3 specular_color = vec3(0.85, 0.85, 0.85);
+	const float gamma = 2.2;
+
+	void main() {
+		float diffuse = max(dot(normalize(v_normal), normalize(u_light)), 0.0);
+
+		vec3 camera_dir = normalize(-v_position);
+		vec3 half_dir = normalize(normalize(u_light) + camera_dir);
+		float specular = pow(max(dot(half_dir, normalize(v_normal)), 0.0), 16.0);
+
+		vec3 colorLin = vec3(ambient_color + diffuse * diffuse_color + specular * specular_color);
+		vec3 colorGamma = pow(colorLin, vec3(1.0 / gamma));
+
+		color = vec4(colorGamma, 1.0);
+	}
+"#;
 
 // Renderer
 
@@ -33,7 +83,9 @@ pub struct Renderer {
 	event_loop: EventLoop<()>,
 	display: Display,
 	program: Program,
+
 	models: Vec<Model>,
+
 	_last_frame: Instant
 }
 
@@ -42,51 +94,14 @@ impl Renderer {
 		// Display Window
 
 		let mut event_loop = EventLoop::new();
+
 		let window = WindowBuilder::new();
 		let context = ContextBuilder::new().with_depth_buffer(24);
 		let display = Display::new(window, context, &event_loop).unwrap();
 
-		// Shaders
-
-		let vertex_shader_src = r#"
-			#version 150
-
-			in vec3 position;
-			in vec3 normal;
-
-			out vec3 v_normal;
-
-			uniform mat4 perspective;
-			uniform mat4 view;
-			uniform mat4 matrix;
-
-			void main() {
-				mat4 modelview = view * matrix;
-				v_normal = transpose(inverse(mat3(modelview))) * normal;
-				gl_Position = perspective * modelview * vec4(position, 1.0);
-			}
-		"#;
-
-		let fragment_shader_src = r#"
-			#version 150
-
-			in vec3 v_normal;
-
-			out vec4 color;
-
-			uniform vec3 u_light;
-
-			void main() {
-				float brightness = dot(normalize(v_normal), normalize(u_light));
-				vec3 dark_color = vec3(0.505, 0.5, 0.5);
-				vec3 regular_color = vec3(1.0, 1.0, 1.0);
-				color = vec4(mix(dark_color, regular_color, brightness), 1.0);
-			}
-		"#;
-
 		// Program
 
-		let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+		let program = glium::Program::from_source(&display, VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC, None).unwrap();
 
 		// Create Renderer Instance
 
@@ -96,41 +111,44 @@ impl Renderer {
 			event_loop: event_loop,
 			display: display,
 			program: program,
+
 			models: vec![],
+
 			_last_frame: Instant::now()
 		}
 	}
 
 	pub fn run(mut self) {
+		let params = glium::DrawParameters {
+			depth: glium::Depth {
+				test: glium::draw_parameters::DepthTest::IfLess,
+				write: true,
+				.. Default::default()
+			},
+			//backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
+			.. Default::default()
+		};
+
 		self.event_loop.run(move |event, _, control_flow| {
 			// Frame Time
 
-			let start = Instant::now();
-			let delta_time = (start - self._last_frame).as_nanos() as f32 / 1_000_000.0;
-			self._last_frame = start;
+			let now = Instant::now();
+			
+			let delta_time = (now - self._last_frame).as_nanos() as f32 / 1_000_000.0;
+
+			let next_frame_time = now + Duration::from_nanos(16_666_667);
+			*control_flow = ControlFlow::WaitUntil(next_frame_time);
+
+			self._last_frame = now;
 
 			// Start draw frame
 	
 			let mut frame = self.display.draw();
 			frame.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 1.0);
 
-			/*let positions = VertexBuffer::new(&self.display, &teapot::VERTICES).unwrap();
-			let normals = VertexBuffer::new(&self.display, &teapot::NORMALS).unwrap();
-			let indices = IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &teapot::INDICES).unwrap();*/
-
 			let u_light = [-2.0, 2.0, 1.0f32];
 			let perspective = Self::get_perspective(&frame);
 			let view = self.camera.get_view();
-
-			let params = glium::DrawParameters {
-				depth: glium::Depth {
-					test: glium::draw_parameters::DepthTest::IfLess,
-					write: true,
-					.. Default::default()
-				},
-				//backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
-				.. Default::default()
-			};
 
 			for model in &self.models {
 				let uniforms = uniform!{
@@ -145,40 +163,13 @@ impl Renderer {
 					]
 				};
 
-				let vertices = VertexBuffer::new(&self.display, &model.vertices).unwrap();
-				let normals = VertexBuffer::new(&self.display, &model.normals).unwrap();
-				let indices = IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &model.indices).unwrap();
-
-				frame.draw((&vertices, &normals), &indices, &self.program, &uniforms, &params).unwrap();
+				let vertices = model.vert_buf.as_ref().unwrap();
+				let normals = model.norm_buf.as_ref().unwrap();
+				let indices = model.ix_buf.as_ref().unwrap();
+				frame.draw((vertices, normals), indices, &self.program, &uniforms, &params).unwrap();
 			}
 
 			frame.finish().unwrap();
-	
-			/*let uniforms = uniform! {
-				u_light: [-2.0, 2.0, 1.0f32],
-				perspective: Self::get_perspective(&frame),
-				view: self.camera.get_view(),
-				matrix: [
-					[0.01, 0.0, 0.0, 0.0],
-					[0.0, 0.01, 0.0, 0.0],
-					[0.0, 0.0, 0.01, 0.0],
-					[0.0, 0.0, 0.0, 1.0f32]
-				]
-			};
-	
-			let params = glium::DrawParameters {
-				depth: glium::Depth {
-					test: glium::draw_parameters::DepthTest::IfLess,
-					write: true,
-					.. Default::default()
-				},
-				//backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
-				.. Default::default()
-			};
-	
-			frame.draw((&positions, &normals), &indices, &self.program, &uniforms, &params).unwrap();
-	
-			frame.finish().unwrap();*/
 
 			// Event Handler
 
@@ -215,13 +206,6 @@ impl Renderer {
 			// Camera control
 
 			self.camera.control(&self.control, &delta_time);
-
-			// Next frame time
-
-			let end = Instant::now();
-			let next_frame_time = end +
-				std::time::Duration::from_nanos(16_666_667);
-			*control_flow = ControlFlow::WaitUntil(next_frame_time);
 		});
 	}
 
@@ -243,7 +227,10 @@ impl Renderer {
 		]
 	}
 
-	pub fn add_model(&mut self, model: Model) {
+	pub fn add_model(&mut self, mut model: Model) {
+		model.vert_buf = Some(VertexBuffer::new(&self.display, &model.vertices).unwrap());
+		model.norm_buf = Some(VertexBuffer::new(&self.display, &model.normals).unwrap());
+		model.ix_buf = Some(IndexBuffer::new(&self.display, PrimitiveType::TrianglesList, &model.indices).unwrap());
 		self.models.push(model);
 	}
 }

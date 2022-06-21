@@ -16,6 +16,8 @@ pub fn main() {
 	let model = models::ObjModel::parse(&mut file);
 
 	let mut renderer = render::Renderer::new();
+
 	renderer.add_model(model);
+
 	renderer.run();
 }

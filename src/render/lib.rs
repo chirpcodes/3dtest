@@ -1,4 +1,12 @@
-// view_matrix
+pub fn wrap_deg(mut deg: f32) -> f32 {
+	if deg > 180.0 {
+		deg = -180.0 + ((deg - 180.0) % 360.0);
+	}
+	if deg < -180.0 {
+		deg = 180.0 - ((180.0 - deg) % 360.0);
+	}
+	return deg;
+}
 
 pub fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f32;4]; 4] {
 	let f = {

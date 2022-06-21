@@ -1,6 +1,4 @@
-use crate::render::{
-	lib::view_matrix
-};
+use crate::render::lib::{view_matrix, wrap_deg};
 
 use crate::structs::Vec3;
 use crate::controls::ControlState;
@@ -85,18 +83,8 @@ impl CameraView {
 	pub fn rotate(&mut self, x: f64, y: f64, delta: &f32) {
 		let rot_delta = 1.0 * delta;
 
-		self.rotate.x = Self::wrap_deg(self.rotate.x + (x as f32) * rot_delta);
-		self.rotate.y = Self::wrap_deg(self.rotate.y - (y as f32) * rot_delta);
+		self.rotate.x = wrap_deg(self.rotate.x + (x as f32) * rot_delta);
+		self.rotate.y = (self.rotate.y - (y as f32) * rot_delta).clamp(-89.9, 89.9);
 		self.rotate.z = self.rotate.x;
-	}
-
-	pub fn wrap_deg(mut deg: f32) -> f32 {
-		if deg > 180.0 {
-			deg = -180.0 + ((deg - 180.0) % 360.0);
-		}
-		if deg < -180.0 {
-			deg = 180.0 - ((180.0 - deg) % 360.0);
-		}
-		return deg;
 	}
 }
