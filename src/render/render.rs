@@ -65,9 +65,9 @@ const FRAGMENT_SHADER_SRC: &'static str = r#"
 	uniform vec3 u_light;
 	uniform sampler2D tex;
 
-	const vec3 ambient_color = vec3(0.1, 0.1, 0.1);
-	const vec3 diffuse_color = vec3(0.55, 0.5, 0.5);
-	const vec3 specular_color = vec3(0.85, 0.85, 0.85);
+	const vec3 ambient_color = vec3(0.5, 0.5, 0.5);
+	const vec3 diffuse_color = vec3(0.8, 0.75, 0.75);
+	const vec3 specular_color = vec3(1.0, 1.0, 1.0);
 	const float gamma = 2.2;
 
 	void main() {
@@ -79,10 +79,8 @@ const FRAGMENT_SHADER_SRC: &'static str = r#"
 
 		vec3 colorLin = vec3(ambient_color + diffuse * diffuse_color + specular * specular_color);
 		vec3 colorGamma = pow(colorLin, vec3(1.0 / gamma));
-
-		//color = vec4(colorGamma, 1.0);
 		
-		color = texture(tex, v_tex_coords);
+		color = vec4(colorGamma, 1.0) * texture(tex, v_tex_coords);
 	}
 "#;
 
@@ -157,7 +155,7 @@ impl Renderer {
 			let mut frame = self.display.draw();
 			frame.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 1.0);
 
-			let u_light = [-2.0, 2.0, 1.0f32];
+			let u_light = [0.0, 5.0, 1.0f32];
 			let perspective = Self::get_perspective(&frame);
 			let view = self.camera.get_view();
 
